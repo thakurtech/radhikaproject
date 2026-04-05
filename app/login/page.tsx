@@ -2,18 +2,50 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { School, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Users, BookOpen, Shield } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { School, Eye, EyeOff, ArrowRight, Sparkles, GraduationCap, Users, BookOpen, Shield, LoaderCircle } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPwd, setShowPwd] = useState(false);
-  const [role, setRole] = useState('admin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const roles = [
-    { id: 'admin', label: 'Admin', icon: Shield },
-    { id: 'teacher', label: 'Teacher', icon: Users },
-    { id: 'student', label: 'Student', icon: GraduationCap },
-    { id: 'parent', label: 'Parent', icon: BookOpen },
-  ];
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -61,7 +93,7 @@ export default function LoginPage() {
 
       {/* RIGHT */}
       <div className="auth-right">
-        <div className="auth-form-container">
+        <form className="auth-form-container" onSubmit={handleLogin}>
           <div style={{ marginBottom: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
             <div className="sidebar-logo-icon" style={{ width: 36, height: 36 }}>
               <School size={18} color="white" />
@@ -72,27 +104,26 @@ export default function LoginPage() {
           <h1 className="auth-form-title">Welcome back</h1>
           <p className="auth-form-subtitle">Sign in to your school's ERP dashboard</p>
 
-          {/* Role Selector */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 24 }}>
-            {roles.map(r => (
-              <button key={r.id} onClick={() => setRole(r.id)} style={{
-                padding: '10px 8px',
-                borderRadius: 'var(--radius-sm)',
-                border: `2px solid ${role === r.id ? 'var(--primary)' : 'var(--border)'}`,
-                background: role === r.id ? 'var(--primary-subtle)' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4
-              }}>
-                <r.icon size={16} color={role === r.id ? 'var(--primary)' : 'var(--text-muted)'} />
-                <span style={{ fontSize: '0.7rem', fontWeight: 600, color: role === r.id ? 'var(--primary)' : 'var(--text-muted)' }}>{r.label}</span>
-              </button>
-            ))}
-          </div>
+          {error && (
+            <div style={{ 
+              background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.2)',
+              padding: '12px 16px', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', marginBottom: 20
+            }}>
+              {error}
+            </div>
+          )}
 
           <div className="form-group mb-4">
             <label className="form-label">Email Address</label>
-            <input className="form-input" type="email" placeholder="admin@school.edu" defaultValue="admin@springfield.edu" />
+            <input 
+              className="form-input" 
+              type="email" 
+              placeholder="admin@sunderdeep.edu" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              autoFocus
+            />
           </div>
 
           <div className="form-group mb-5">
@@ -101,8 +132,16 @@ export default function LoginPage() {
               <a href="#" style={{ fontSize: '0.78rem', color: 'var(--primary)', fontWeight: 500 }}>Forgot password?</a>
             </label>
             <div style={{ position: 'relative' }}>
-              <input className="form-input" type={showPwd ? 'text' : 'password'} placeholder="••••••••" defaultValue="password123" style={{ paddingRight: 44 }} />
-              <button onClick={() => setShowPwd(!showPwd)} style={{
+              <input 
+                className="form-input" 
+                type={showPwd ? 'text' : 'password'} 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                style={{ paddingRight: 44 }} 
+              />
+              <button type="button" onClick={() => setShowPwd(!showPwd)} style={{
                 position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer'
               }}>
@@ -111,14 +150,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <Link href="/dashboard" className="btn btn-primary w-full btn-lg" style={{ justifyContent: 'center', marginBottom: 16 }}>
-            Sign In <ArrowRight size={18} />
-          </Link>
-
-          <div style={{ textAlign: 'center', fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-            Don't have an account?{' '}
-            <Link href="/signup" style={{ color: 'var(--primary)', fontWeight: 600 }}>Contact us</Link>
-          </div>
+          <button type="submit" disabled={loading} className="btn btn-primary w-full btn-lg" style={{ justifyContent: 'center', marginBottom: 16 }}>
+            {loading ? <LoaderCircle className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={18} /></>}
+          </button>
 
           <div className="divider" />
 
@@ -128,13 +162,14 @@ export default function LoginPage() {
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border)'
           }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Demo Credentials</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Sunderdeep Demo Accounts</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              📧 admin@springfield.edu<br />
-              🔑 password123
+              Admin: <b>admin@sunderdeep.edu</b> / Admin@123<br />
+              Teacher: <b>rahul.sharma@sunderdeep.edu</b> / Teacher@123<br />
+              Student: <b>arjun.btech@sunderdeep.edu</b> / Student@123
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

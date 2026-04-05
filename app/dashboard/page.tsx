@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Users, GraduationCap, ClipboardCheck, DollarSign, TrendingUp,
   TrendingDown, BarChart3, Bell, Calendar, BookOpen,
@@ -106,12 +106,27 @@ function TiltCard({ children, className = '', style = {} }: { children: React.Re
 /* ── Dashboard Page ─────────────────────────────────────────────── */
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [dbStats, setDbStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/dashboard/stats')
+      .then(res => res.json())
+      .then(data => {
+        setDbStats(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   const stats = [
-    { label: 'Total Students',    value: '2,847', change: '+124', up: true,  icon: GraduationCap, color: 'blue',    detail: 'vs last month' },
-    { label: "Today's Attendance", value: '86.4%', change: '-3.2%', up: false, icon: ClipboardCheck, color: 'emerald', detail: 'of 2,847 students' },
-    { label: 'Fee Collection',    value: '₹7.8L', change: '+18%', up: true,  icon: DollarSign,    color: 'amber',   detail: 'this month' },
-    { label: 'Active Teachers',   value: '142',   change: '+3',   up: true,  icon: Users,         color: 'violet',  detail: 'currently on campus' },
+    { label: 'Total Students',    value: loading ? '...' : dbStats?.totalStudents || '0', change: '+12%', up: true,  icon: GraduationCap, color: 'blue',    detail: 'Total enrolled' },
+    { label: "Avg Attendance",    value: loading ? '...' : `${dbStats?.avgAttendance || 0}%`, change: '+1.2%', up: true, icon: ClipboardCheck, color: 'emerald', detail: 'Across all courses' },
+    { label: 'Fee Collection',    value: loading ? '...' : `₹${((dbStats?.totalCollected || 0)/100000).toFixed(1)}L`, change: '+8%', up: true,  icon: DollarSign,    color: 'amber',   detail: 'Current academic year' },
+    { label: 'Total Teachers',   value: loading ? '...' : dbStats?.totalTeachers || '0',   change: '+2',   up: true,  icon: Users,         color: 'violet',  detail: 'Active faculty members' },
   ];
 
   return (
