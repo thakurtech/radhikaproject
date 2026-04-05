@@ -79,30 +79,43 @@
   --info-light: #dbeafe;
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-base: #0c0e16;
-    --bg-elevated: #14161f;
-    --bg-overlay: rgba(20,22,31,0.92);
-    --bg-subtle: #1a1c2a;
-    --bg-sidebar: #111321;
-    --border: #1e2133;
-    --border-subtle: #181a28;
-    --border-strong: #2a2d3e;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #475569;
-  }
+/* ============================================================
+   DARK MODE — toggled via [data-theme="dark"] on <html>
+   Falls back to system preference on first load
+============================================================ */
+[data-theme="dark"] {
+  --bg-base: #0c0e16;
+  --bg-elevated: #14161f;
+  --bg-overlay: rgba(20,22,31,0.92);
+  --bg-subtle: #1a1c2a;
+  --bg-sidebar: #111321;
+  --border: #1e2133;
+  --border-subtle: #181a28;
+  --border-strong: #2a2d3e;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3);
 }
 
-/* ============================================
-   RESET & BASE
-============================================ */
-*, *::before, *::after {
+/* Merged reset + smooth theme transition */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+/* Smooth theme switching — exclude SVG internals to avoid chart flicker */
+body *:not(path):not(circle):not(rect):not(line):not(polyline):not(polygon) {
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.15s ease,
+    box-shadow 0.25s ease;
 }
 
 html {
