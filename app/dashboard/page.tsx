@@ -174,9 +174,9 @@ export default function DashboardPage() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
                 <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={v => `₹${(v/100000).toFixed(1)}L`} />
+                <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v/100000).toFixed(1)}L`} />
                 <Tooltip
-                  formatter={(v: number) => [`₹${(v/1000).toFixed(0)}K`, '']}
+                  formatter={(v) => [`₹${(Number(v ?? 0)/1000).toFixed(0)}K`, '']}
                   contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
                 />
                 <Area type="monotone" dataKey="collected" stroke="var(--primary)" strokeWidth={2} fill="url(#collected)" />
