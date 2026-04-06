@@ -5,7 +5,7 @@ import { verifyAuth } from './lib/auth';
 // For now, let's protect /dashboard and all its subroutes
 const protectedRoutes = ['/dashboard', '/students', '/finance', '/attendance', '/results', '/communication'];
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const token = req.cookies.get('edu_token')?.value;
 
   const isProtectedRoute = protectedRoutes.some(route => req.nextUrl.pathname.startsWith(route));
