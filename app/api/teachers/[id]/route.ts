@@ -3,7 +3,7 @@ import { verifyAuth } from '@/lib/auth';
 import connectDB from '@/lib/db';
 import { Teacher, User } from '@/lib/models';
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const token = req.cookies.get('edu_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -13,6 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'Forbidden. Only Admins can modify teachers.' }, { status: 403 });
     }
 
+    const params = await props.params;
     const { id } = params;
     const updates = await req.json();
 
@@ -49,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const token = req.cookies.get('edu_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -59,6 +60,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Forbidden. Only Admins can delete teachers.' }, { status: 403 });
     }
 
+    const params = await props.params;
     const { id } = params;
     if (!id) return NextResponse.json({ error: 'Teacher ID required' }, { status: 400 });
 
