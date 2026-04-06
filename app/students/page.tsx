@@ -5,8 +5,11 @@ import {
   Search, Filter, Plus, Download, MoreVertical, GraduationCap,
   Phone, Mail, MapPin, TrendingUp, TrendingDown, Eye, Edit2, Trash2, ChevronLeft, ChevronRight, LoaderCircle
 } from 'lucide-react';
+import { useUser } from '../components/UserProvider';
 
 export default function StudentsPage() {
+  const { user } = useUser();
+  const isAdmin = user?.role === 'school_admin' || user?.role === 'super_admin';
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +24,7 @@ export default function StudentsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [adding, setAdding] = useState(false);
   const [formError, setFormError] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -59,21 +63,63 @@ export default function StudentsPage() {
     setAdding(true);
     setFormError('');
     try {
-      const res = await fetch('/api/students', {
-        method: 'POST',
+      const isEditing = !!editingId;
+      const url = isEditing ? `/api/students/${editingId}` : '/api/students';
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       
-      setShowAddModal(false);
-      setFormData(prev => ({ ...prev, firstName: '', lastName: '', email: '', enrollmentNumber: '' }));
+      closeModal();
       fetchData(); // refresh list
     } catch (err: any) {
       setFormError(err.message || 'Something went wrong');
     } finally {
       setAdding(false);
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingId(null);
+    setFormData({ firstName: '', lastName: '', email: '', enrollmentNumber: '', courseId: courses[0]?._id || '', currentYear: 1 });
+    setShowAddModal(true);
+  };
+
+  const openEditModal = (student: any) => {
+    setEditingId(student._id);
+    setFormData({
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email || '',
+      enrollmentNumber: student.enrollmentNumber,
+      courseId: student.courseId?._id || '',
+      currentYear: student.currentYear
+    });
+    setShowAddModal(true);
+  };
+
+  const closeModal = () => {
+    if (adding) return;
+    setShowAddModal(false);
+    setEditingId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to permanently delete this student?')) return;
+    try {
+      const res = await fetch(`/api/students/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      fetchData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete student');
     }
   };
 
@@ -103,9 +149,11 @@ export default function StudentsPage() {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm"><Download size={15} /> Export</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAddModal(true)}>
-            <Plus size={15} /> Add Student
-          </button>
+          {isAdmin && (
+            <button className="btn btn-primary btn-sm" onClick={openAddModal}>
+              <Plus size={15} /> Add Student
+            </button>
+          )}
         </div>
       </div>
 
@@ -189,7 +237,12 @@ export default function StudentsPage() {
                       <td>
                         <div className="flex items-center gap-1">
                           <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setViewStudent(student)}><Eye size={14} /></button>
-                          <button className="btn btn-ghost btn-icon btn-sm"><Edit2 size={14} /></button>
+                          {isAdmin && (
+                            <>
+                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEditModal(student)}><Edit2 size={14} /></button>
+                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDelete(student._id)}><Trash2 size={14} color="#ef4444" /></button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -203,11 +256,11 @@ export default function StudentsPage() {
 
       {/* NEW STUDENT MODAL */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => !adding && setShowAddModal(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <form className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()} onSubmit={handleAddSubmit}>
              <div className="modal-header">
-                <div className="modal-title">Add New Student</div>
-                <button type="button" className="btn btn-ghost btn-icon" onClick={() => setShowAddModal(false)}>✕</button>
+                <div className="modal-title">{editingId ? 'Edit Student' : 'Add New Student'}</div>
+                <button type="button" className="btn btn-ghost btn-icon" onClick={closeModal}>✕</button>
              </div>
              
              {formError && (
@@ -251,9 +304,9 @@ export default function StudentsPage() {
              </div>
 
              <div className="flex gap-2 justify-end">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={adding}>
-                  {adding ? <LoaderCircle size={16} className="animate-spin" /> : 'Create Student'}
+                  {adding ? <LoaderCircle size={16} className="animate-spin" /> : (editingId ? 'Save Changes' : 'Create Student')}
                 </button>
              </div>
           </form>

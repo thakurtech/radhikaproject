@@ -26,12 +26,13 @@ type AttendStatus = 'present' | 'absent' | 'late' | null;
 
 export default function AttendancePage() {
   const { user, loading } = useUser();
+  const canMark = user?.role === 'teacher' || user?.role === 'school_admin' || user?.role === 'super_admin';
   const [students, setStudents] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
   const [attendance, setAttendance] = useState<Record<string, AttendStatus>>({});
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('mark');
+  const [activeTab, setActiveTab] = useState(canMark ? 'mark' : 'analytics');
 
   // Today's date String
   const today = new Date().toISOString().split('T')[0];
@@ -121,7 +122,7 @@ export default function AttendancePage() {
         </div>
         <div className="page-header-actions">
           <div className="pill-tabs">
-            {['mark', 'analytics', 'reports'].map(t => (
+            {(canMark ? ['mark', 'analytics', 'reports'] : ['analytics', 'reports']).map(t => (
               <button key={t} className={`pill-tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
@@ -147,7 +148,7 @@ export default function AttendancePage() {
         ))}
       </div>
 
-      {activeTab === 'mark' && (
+      {activeTab === 'mark' && canMark && (
         <div className="grid-2">
           {/* LEFT: Mark Attendance */}
           <div className="card">

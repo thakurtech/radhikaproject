@@ -11,6 +11,7 @@ const DEPARTMENTS = ['Science', 'Humanities', 'Technology', 'Arts', 'Commerce'];
 
 export default function TeachersPage() {
   const { user, loading } = useUser();
+  const isAdmin = user?.role === 'school_admin' || user?.role === 'super_admin';
   const [search, setSearch] = useState('');
   const [dept, setDept] = useState('all');
   const [view, setView] = useState<'grid' | 'list'>('grid');
@@ -21,6 +22,7 @@ export default function TeachersPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   // Form State
   const [firstName, setFirstName] = useState('');
@@ -68,28 +70,65 @@ export default function TeachersPage() {
     e.preventDefault();
     try {
       setFormLoading(true);
-      const res = await fetch('/api/teachers', {
-        method: 'POST',
+      const isEditing = !!editingId;
+      const url = isEditing ? `/api/teachers/${editingId}` : '/api/teachers';
+      const method = isEditing ? 'PATCH' : 'POST';
+
+      const payload: any = { firstName, lastName, department };
+      if (!isEditing) {
+        payload.email = email;
+        payload.password = password;
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, department, email, password })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
-        alert('Teacher created successfully!');
-        setIsModalOpen(false);
-        setFirstName('');
-        setLastName('');
-        setEmail('');
-        setPassword('');
+        closeModal();
         fetchTeachers();
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to create teacher');
+        alert(data.error || 'Failed to save teacher');
       }
     } catch (error) {
       alert('Network error');
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingId(null);
+    setFirstName(''); setLastName(''); setDepartment('Science'); setEmail(''); setPassword('');
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (t: any) => {
+    setEditingId(t._id);
+    setFirstName(t.firstName);
+    setLastName(t.lastName);
+    setDepartment(t.department);
+    setEmail(t.email || '');
+    setPassword('');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to permanently delete this teacher?')) return;
+    try {
+      const res = await fetch(`/api/teachers/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      fetchTeachers();
+    } catch {
+      alert('Failed to delete teacher');
     }
   };
 
@@ -110,7 +149,7 @@ export default function TeachersPage() {
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm"><Download size={15} /> Export</button>
           {(user?.role === 'school_admin' || user?.role === 'super_admin') && (
-             <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
+             <button className="btn btn-primary btn-sm" onClick={openAddModal}>
                <Plus size={15} /> Add Teacher
              </button>
           )}
@@ -190,11 +229,12 @@ export default function TeachersPage() {
                       ))}
                     </div>
 
-                    <div className="flex gap-2">
-                      <button className="btn btn-secondary btn-sm" style={{ flex: 1 }}><Edit2 size={13} /> Edit</button>
-                      <button className="btn btn-secondary btn-icon btn-sm"><Mail size={14} /></button>
-                      <button className="btn btn-secondary btn-icon btn-sm"><Phone size={14} /></button>
-                    </div>
+                    {isAdmin && (
+                      <div className="flex gap-2">
+                        <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditModal(t)}><Edit2 size={13} /> Edit</button>
+                        <button className="btn btn-secondary btn-icon btn-sm" onClick={() => handleDelete(t._id)}><X size={14} color="#ef4444" /></button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -232,10 +272,14 @@ export default function TeachersPage() {
                         <td style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t.students}</td>
                         <td><span style={{ fontWeight: 700, color: 'var(--accent-amber)' }}>⭐ {t.rating}</span></td>
                         <td>
-                          <div className="flex items-center gap-1">
-                            <button className="btn btn-ghost btn-icon btn-sm"><Edit2 size={14} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm"><Mail size={14} /></button>
-                          </div>
+                          {isAdmin ? (
+                            <div className="flex items-center gap-1">
+                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEditModal(t)}><Edit2 size={14} /></button>
+                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDelete(t._id)}><X size={14} color="#ef4444" /></button>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -249,11 +293,11 @@ export default function TeachersPage() {
 
       {/* CREATE TEACHER MODAL */}
       {isModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-container slide-in-right" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Hire New Teacher</h3>
-              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setIsModalOpen(false)}>
+              <h3>{editingId ? 'Edit Teacher' : 'Hire New Teacher'}</h3>
+              <button className="btn btn-ghost btn-icon btn-sm" onClick={closeModal}>
                 <X size={18} />
               </button>
             </div>
@@ -277,21 +321,25 @@ export default function TeachersPage() {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Login Email</label>
-                  <input type="email" className="form-input" required value={email} onChange={e => setEmail(e.target.value)} />
-                  <div className="form-hint">Used for Teacher portal access.</div>
-                </div>
+                {!editingId && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">Login Email</label>
+                      <input type="email" className="form-input" required value={email} onChange={e => setEmail(e.target.value)} />
+                      <div className="form-hint">Used for Teacher portal access.</div>
+                    </div>
 
-                <div className="form-group">
-                  <label className="form-label">Temporary Password</label>
-                  <input type="password" className="form-input" required value={password} onChange={e => setPassword(e.target.value)} />
-                </div>
+                    <div className="form-group">
+                      <label className="form-label">Temporary Password</label>
+                      <input type="password" className="form-input" required value={password} onChange={e => setPassword(e.target.value)} />
+                    </div>
+                  </>
+                )}
 
                 <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <button type="button" className="btn btn-ghost" onClick={() => setIsModalOpen(false)}>Cancel</button>
+                  <button type="button" className="btn btn-ghost" onClick={closeModal}>Cancel</button>
                   <button type="submit" className="btn btn-primary" disabled={formLoading}>
-                    {formLoading ? 'Creating...' : 'Create Teacher'}
+                    {formLoading ? 'Saving...' : (editingId ? 'Save Changes' : 'Create Teacher')}
                   </button>
                 </div>
               </form>

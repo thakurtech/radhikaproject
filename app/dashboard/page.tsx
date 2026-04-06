@@ -11,8 +11,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell
 } from 'recharts';
+import { useUser } from '../components/UserProvider';
 
-/* ── Data ──────────────────────────────────────────────────────── */
+/* ── Static Demo Data ──────────────────────────────────────────── */
 const attendanceData = [
   { day: 'Mon', present: 92, absent: 8 },
   { day: 'Tue', present: 88, absent: 12 },
@@ -39,14 +40,6 @@ const gradeDistribution = [
   { name: 'D',  value: 7,  color: '#f59e0b' },
 ];
 
-const recentActivity = [
-  { icon: GraduationCap, color: '#6366f1', bg: 'rgba(99,102,241,0.1)',   text: 'New student enrolled: Arjun Mehta (Grade 10)',         time: '5 min ago' },
-  { icon: ClipboardCheck, color: '#10b981', bg: 'rgba(16,185,129,0.1)', text: 'Attendance marked for Class 9-A (42/45 present)',      time: '12 min ago' },
-  { icon: DollarSign,     color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', text: 'Fee payment received: ₹18,500 from Sharma family',     time: '28 min ago' },
-  { icon: AlertCircle,    color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',  text: 'Low attendance alert: Priya Patel (65% this month)',   time: '1h ago' },
-  { icon: Award,          color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', text: 'Exam results published for Grade 12 Board Exams',      time: '2h ago' },
-];
-
 const upcomingEvents = [
   { title: 'Annual Sports Day',         date: 'Apr 10', type: 'Event',   color: '#10b981' },
   { title: 'Parent-Teacher Meeting',    date: 'Apr 12', type: 'Meeting', color: '#6366f1' },
@@ -55,12 +48,7 @@ const upcomingEvents = [
   { title: 'Board Exam Registration',   date: 'Apr 22', type: 'Admin',   color: '#8b5cf6' },
 ];
 
-const topStudents = [
-  { name: 'Aayush Sharma', class: 'Grade 10-A', score: 94.2, trend: 'up' },
-  { name: 'Kavya Reddy',   class: 'Grade 12-B', score: 93.8, trend: 'up' },
-  { name: 'Aryan Singh',   class: 'Grade 11-A', score: 92.1, trend: 'down' },
-  { name: 'Nisha Patel',   class: 'Grade 10-B', score: 91.5, trend: 'up' },
-];
+const CHART_COLORS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#ec4899'];
 
 /* ── 3D Tilt Card ───────────────────────────────────────────────── */
 function TiltCard({ children, className = '', style = {} }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
@@ -105,9 +93,14 @@ function TiltCard({ children, className = '', style = {} }: { children: React.Re
 
 /* ── Dashboard Page ─────────────────────────────────────────────── */
 export default function DashboardPage() {
+  const { user, loading: authLoading } = useUser();
   const [activeTab, setActiveTab] = useState('overview');
   const [dbStats, setDbStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const isAdmin = user?.role === 'school_admin' || user?.role === 'super_admin';
+  const isTeacher = user?.role === 'teacher';
+  const isStudent = user?.role === 'student';
 
   useEffect(() => {
     fetch('/api/dashboard/stats')
@@ -122,11 +115,78 @@ export default function DashboardPage() {
       });
   }, []);
 
-  const stats = [
+  const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  /* ── Admin Stats ── */
+  const adminStats = [
     { label: 'Total Students',    value: loading ? '...' : dbStats?.totalStudents || '0', change: '+12%', up: true,  icon: GraduationCap, color: 'blue',    detail: 'Total enrolled' },
     { label: "Avg Attendance",    value: loading ? '...' : `${dbStats?.avgAttendance || 0}%`, change: '+1.2%', up: true, icon: ClipboardCheck, color: 'emerald', detail: 'Across all courses' },
     { label: 'Fee Collection',    value: loading ? '...' : `₹${((dbStats?.totalCollected || 0)/100000).toFixed(1)}L`, change: '+8%', up: true,  icon: DollarSign,    color: 'amber',   detail: 'Current academic year' },
     { label: 'Total Teachers',   value: loading ? '...' : dbStats?.totalTeachers || '0',   change: '+2',   up: true,  icon: Users,         color: 'violet',  detail: 'Active faculty members' },
+  ];
+
+  /* ── Teacher Stats ── */
+  const teacherStats = [
+    { label: 'Total Students',  value: loading ? '...' : dbStats?.totalStudents || '0', change: '', up: true, icon: GraduationCap, color: 'blue', detail: 'Across all classes' },
+    { label: 'Avg Attendance',  value: loading ? '...' : `${dbStats?.avgAttendance || 0}%`, change: '', up: true, icon: ClipboardCheck, color: 'emerald', detail: 'School-wide' },
+    { label: 'Departments',     value: loading ? '...' : dbStats?.departmentBreakdown?.length || '0', change: '', up: true, icon: BookOpen, color: 'violet', detail: 'Active depts' },
+    { label: 'Total Faculty',   value: loading ? '...' : dbStats?.totalTeachers || '0', change: '', up: true,  icon: Users, color: 'amber', detail: 'Colleagues' },
+  ];
+
+  /* ── Student Stats ── */
+  const studentStats = [
+    { label: 'My Attendance',    value: loading ? '...' : `${dbStats?.avgAttendance || 0}%`, change: '', up: true, icon: ClipboardCheck, color: 'emerald', detail: 'This semester' },
+    { label: 'Upcoming Events',  value: upcomingEvents.length.toString(), change: '', up: true, icon: Calendar, color: 'blue', detail: 'This month' },
+    { label: 'My GPA',           value: '3.6', change: '', up: true, icon: Award, color: 'violet', detail: 'Cumulative' },
+    { label: 'Days Until Exam',  value: '9', change: '', up: false, icon: AlertCircle, color: 'rose', detail: 'Mid-terms' },
+  ];
+
+  const stats = isAdmin ? adminStats : isTeacher ? teacherStats : studentStats;
+
+  /* ── Quick Actions (Role-Specific) ── */
+  const adminQuickActions = [
+    { label: 'Mark Attendance', icon: ClipboardCheck, href: '/attendance', color: '#10b981' },
+    { label: 'Add Student',     icon: GraduationCap,  href: '/students',   color: '#6366f1' },
+    { label: 'Generate Report', icon: BarChart3,       href: '/results',    color: '#8b5cf6' },
+    { label: 'Collect Fees',    icon: DollarSign,      href: '/finance',    color: '#f59e0b' },
+    { label: 'Send Notice',     icon: Bell,            href: '/communication', color: '#06b6d4' },
+  ];
+
+  const teacherQuickActions = [
+    { label: 'Mark Attendance', icon: ClipboardCheck, href: '/attendance', color: '#10b981' },
+    { label: 'View Students',   icon: GraduationCap,  href: '/students',   color: '#6366f1' },
+    { label: 'View Results',    icon: BarChart3,       href: '/results',    color: '#8b5cf6' },
+  ];
+
+  const studentQuickActions = [
+    { label: 'View Attendance', icon: ClipboardCheck, href: '/attendance', color: '#10b981' },
+    { label: 'My Results',      icon: BarChart3,       href: '/results',    color: '#8b5cf6' },
+    { label: 'View Teachers',   icon: Users,           href: '/teachers',   color: '#6366f1' },
+  ];
+
+  const quickActions = isAdmin ? adminQuickActions : isTeacher ? teacherQuickActions : studentQuickActions;
+
+  const recentActivity = isAdmin ? [
+    { icon: GraduationCap, color: '#6366f1', bg: 'rgba(99,102,241,0.1)',   text: 'New student enrolled: Arjun Mehta (Grade 10)',         time: '5 min ago' },
+    { icon: ClipboardCheck, color: '#10b981', bg: 'rgba(16,185,129,0.1)', text: 'Attendance marked for Class 9-A (42/45 present)',      time: '12 min ago' },
+    { icon: DollarSign,     color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', text: 'Fee payment received: ₹18,500 from Sharma family',     time: '28 min ago' },
+    { icon: AlertCircle,    color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',  text: 'Low attendance alert: Priya Patel (65% this month)',   time: '1h ago' },
+    { icon: Award,          color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', text: 'Exam results published for Grade 12 Board Exams',      time: '2h ago' },
+  ] : isTeacher ? [
+    { icon: ClipboardCheck, color: '#10b981', bg: 'rgba(16,185,129,0.1)', text: 'You marked attendance for Class 9-A today',            time: '12 min ago' },
+    { icon: AlertCircle,    color: '#f43f5e', bg: 'rgba(244,63,94,0.1)',  text: '3 students have attendance below 75%',                 time: '1h ago' },
+    { icon: Award,          color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', text: 'Mid-term grades submission deadline: Apr 14',           time: '2h ago' },
+  ] : [
+    { icon: ClipboardCheck, color: '#10b981', bg: 'rgba(16,185,129,0.1)', text: 'Your attendance was marked: Present',                   time: 'Today' },
+    { icon: Award,          color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', text: 'Assignment grades posted for Mathematics',              time: 'Yesterday' },
+    { icon: Calendar,       color: '#6366f1', bg: 'rgba(99,102,241,0.1)', text: 'Mid-term exams start April 15',                        time: '2 days ago' },
   ];
 
   return (
@@ -134,8 +194,14 @@ export default function DashboardPage() {
       {/* ── Page Header ── */}
       <div className="page-header">
         <div className="page-header-left">
-          <h1 className="page-title">Good Morning, Springfield High! 👋</h1>
-          <p className="page-subtitle">Here's what's happening at your school today — Saturday, April 5, 2026</p>
+          <h1 className="page-title">{getGreeting()}, {user?.name?.split(' ')[0] || 'User'}! 👋</h1>
+          <p className="page-subtitle">
+            {isAdmin
+              ? `Here's what's happening at your school today — ${today}`
+              : isTeacher
+              ? `Welcome back — ${today}`
+              : `Your student dashboard — ${today}`}
+          </p>
         </div>
         <div className="page-header-actions">
           <div className="pill-tabs">
@@ -164,11 +230,15 @@ export default function DashboardPage() {
         <div style={{ flex: 1, position: 'relative' }}>
           <div style={{ fontSize: '0.72rem', opacity: 0.75, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>AI Insight</div>
           <div style={{ fontSize: '0.92rem', fontWeight: 600, marginTop: 3 }}>
-            Attendance is 3.2% lower than last week. Grade 8 has the most absences. Consider sending reminders to 24 parents.
+            {isAdmin
+              ? 'Attendance is 3.2% lower than last week. Grade 8 has the most absences. Consider sending reminders to 24 parents.'
+              : isTeacher
+              ? '3 students in your classes have attendance below 75%. Consider a check-in with them this week.'
+              : 'You have 2 pending assignments this week. Your attendance is on track — keep it up!'}
           </div>
         </div>
         <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.18)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', whiteSpace: 'nowrap', backdropFilter: 'blur(8px)', position: 'relative' }}>
-          Take Action <ArrowRight size={13} />
+          {isStudent ? 'View Tasks' : 'Take Action'} <ArrowRight size={13} />
         </button>
         <style>{`
           @keyframes shimmer-banner {
@@ -185,10 +255,12 @@ export default function DashboardPage() {
             <div className={`stat-card ${stat.color}`}>
               <div className="flex items-center justify-between">
                 <div className={`stat-icon ${stat.color}`}><stat.icon size={20} /></div>
-                <div className={`stat-change ${stat.up ? 'up' : 'down'}`}>
-                  {stat.up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                  {stat.change}
-                </div>
+                {stat.change && (
+                  <div className={`stat-change ${stat.up ? 'up' : 'down'}`}>
+                    {stat.up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+                    {stat.change}
+                  </div>
+                )}
               </div>
               <div>
                 <div className="stat-value">{stat.value}</div>
@@ -200,129 +272,278 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Charts Row ── */}
-      <div className="grid-2 mb-6">
-        {/* Attendance Chart */}
-        <TiltCard>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Weekly Attendance</span>
-              <span className="badge badge-success">This Week</span>
+      {/* ══════════ ADMIN: Course, Year, Department Breakdown ══════════ */}
+      {isAdmin && dbStats && (
+        <div className="grid-3 mb-6">
+          {/* Course-wise Student Distribution */}
+          <TiltCard>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Students by Course</span>
+                <span className="badge badge-primary">Live Data</span>
+              </div>
+              <div className="card-body">
+                {dbStats.courseBreakdown?.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={dbStats.courseBreakdown} barSize={20}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis dataKey="courseName" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                      <Bar dataKey="studentCount" name="Students" radius={[6, 6, 0, 0]}>
+                        {dbStats.courseBreakdown.map((_: any, i: number) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No courses found</div>
+                )}
+              </div>
             </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={attendanceData} barSize={22}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, boxShadow: 'var(--shadow-lg)', backdropFilter: 'blur(12px)' }} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
-                  <Bar dataKey="present" fill="url(#presentGrad)" radius={[6,6,0,0]} />
-                  <Bar dataKey="absent"  fill="rgba(244,63,94,0.5)" radius={[6,6,0,0]} />
-                  <defs>
-                    <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </TiltCard>
+          </TiltCard>
 
-        {/* Revenue Chart */}
-        <TiltCard>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Fee Collection Trend</span>
-              <span className="badge badge-primary">6 Months</span>
-            </div>
-            <div className="card-body">
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient id="collected" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v/100000).toFixed(1)}L`} />
-                  <Tooltip
-                    formatter={(v) => [`₹${(Number(v ?? 0)/1000).toFixed(0)}K`, '']}
-                    contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, boxShadow: 'var(--shadow-lg)', backdropFilter: 'blur(12px)' }}
-                  />
-                  <Area type="monotone" dataKey="collected" stroke="#6366f1" strokeWidth={2.5} fill="url(#collected)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </TiltCard>
-      </div>
-
-      {/* ── Bottom Section ── */}
-      <div className="grid-3 mb-6">
-        {/* Grade Distribution */}
-        <TiltCard>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Grade Distribution</span>
-              <Link href="/results" className="btn btn-ghost btn-sm" style={{ fontSize: '0.78rem' }}>
-                View All <ChevronRight size={13} />
-              </Link>
-            </div>
-            <div className="card-body">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <PieChart width={120} height={120}>
-                  <Pie data={gradeDistribution} cx={55} cy={55} innerRadius={36} outerRadius={54} dataKey="value" strokeWidth={0}>
-                    {gradeDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                </PieChart>
-                <div style={{ flex: 1 }}>
-                  {gradeDistribution.map(g => (
-                    <div key={g.name} className="flex items-center gap-2 mb-2">
-                      <div style={{ width: 10, height: 10, borderRadius: 3, background: g.color, flexShrink: 0, boxShadow: `0 0 6px ${g.color}80` }} />
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', flex: 1 }}>Grade {g.name}</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{g.value}%</span>
+          {/* Year-wise Distribution */}
+          <TiltCard>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Students by Year</span>
+              </div>
+              <div className="card-body">
+                {dbStats.yearBreakdown?.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={dbStats.yearBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="count" nameKey="year" strokeWidth={0}>
+                        {dbStats.yearBreakdown.map((_: any, i: number) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No data</div>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 8 }}>
+                  {dbStats.yearBreakdown?.map((y: any, i: number) => (
+                    <div key={y.year} className="flex items-center gap-2">
+                      <div style={{ width: 10, height: 10, borderRadius: 3, background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{y.year}: {y.count}</span>
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-        </TiltCard>
+          </TiltCard>
 
-        {/* Top Students */}
-        <TiltCard>
-          <div className="card">
-            <div className="card-header">
-              <span className="card-title">Top Performers</span>
-              <Link href="/students" className="btn btn-ghost btn-sm" style={{ fontSize: '0.78rem' }}>
-                View All <ChevronRight size={13} />
-              </Link>
+          {/* Department Distribution */}
+          <TiltCard>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Faculty by Department</span>
+              </div>
+              <div className="card-body" style={{ padding: '16px 20px' }}>
+                {dbStats.departmentBreakdown?.length > 0 ? (
+                  dbStats.departmentBreakdown.map((dept: any, i: number) => (
+                    <div key={dept.department} style={{ marginBottom: 12 }}>
+                      <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+                        <span style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)' }}>{dept.department}</span>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: CHART_COLORS[i % CHART_COLORS.length] }}>{dept.count}</span>
+                      </div>
+                      <div className="progress-bar" style={{ height: 6, borderRadius: 3 }}>
+                        <div style={{
+                          width: `${(dept.count / Math.max(...dbStats.departmentBreakdown.map((d: any) => d.count), 1)) * 100}%`,
+                          height: '100%',
+                          background: CHART_COLORS[i % CHART_COLORS.length],
+                          borderRadius: 3,
+                          transition: 'width 0.5s ease'
+                        }} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No department data</div>
+                )}
+              </div>
             </div>
-            <div className="card-body" style={{ padding: '12px 20px' }}>
-              {topStudents.map((s, i) => (
-                <div key={s.name} className="flex items-center gap-3" style={{ padding: '10px 0', borderBottom: i < topStudents.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0, boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-                    {i + 1}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{s.class}</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{s.score}%</span>
-                    {s.trend === 'up' ? <TrendingUp size={13} color="#10b981" /> : <TrendingDown size={13} color="#ef4444" />}
+          </TiltCard>
+        </div>
+      )}
+
+      {/* ══════════ ADMIN: Course-wise Attendance Table ══════════ */}
+      {isAdmin && dbStats?.courseBreakdown?.length > 0 && (
+        <div className="card mb-6">
+          <div className="card-header">
+            <span className="card-title">Course-wise Attendance Overview</span>
+            <Link href="/attendance" className="btn btn-ghost btn-sm" style={{ fontSize: '0.78rem' }}>
+              View Details <ChevronRight size={13} />
+            </Link>
+          </div>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Course / Program</th>
+                  <th>Enrolled Students</th>
+                  <th>Avg. Attendance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dbStats.courseBreakdown.map((c: any) => (
+                  <tr key={c.courseId}>
+                    <td><span style={{ fontWeight: 600 }}>{c.courseName}</span></td>
+                    <td style={{ fontWeight: 600 }}>{c.studentCount}</td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <div className="progress-bar" style={{ width: 80 }}>
+                          <div className={`progress-fill ${c.avgAttendance >= 85 ? 'success' : c.avgAttendance >= 70 ? 'warning' : 'danger'}`}
+                            style={{ width: `${c.avgAttendance}%` }} />
+                        </div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{c.avgAttendance}%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${c.avgAttendance >= 85 ? 'badge-success' : c.avgAttendance >= 70 ? 'badge-warning' : 'badge-danger'}`}>
+                        {c.avgAttendance >= 85 ? 'Good' : c.avgAttendance >= 70 ? 'Needs Attention' : 'Critical'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Charts Row (Admin & Teacher only) ── */}
+      {(isAdmin || isTeacher) && (
+        <div className="grid-2 mb-6">
+          {/* Attendance Chart */}
+          <TiltCard>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Weekly Attendance</span>
+                <span className="badge badge-success">This Week</span>
+              </div>
+              <div className="card-body">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={attendanceData} barSize={22}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                    <XAxis dataKey="day" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, boxShadow: 'var(--shadow-lg)', backdropFilter: 'blur(12px)' }} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
+                    <Bar dataKey="present" fill="url(#presentGrad)" radius={[6,6,0,0]} />
+                    <Bar dataKey="absent"  fill="rgba(244,63,94,0.5)" radius={[6,6,0,0]} />
+                    <defs>
+                      <linearGradient id="presentGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+                    </defs>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </TiltCard>
+
+          {/* Revenue Chart (Admin only) */}
+          {isAdmin ? (
+            <TiltCard>
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">Fee Collection Trend</span>
+                  <span className="badge badge-primary">6 Months</span>
+                </div>
+                <div className="card-body">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={revenueData}>
+                      <defs>
+                        <linearGradient id="collected" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
+                      <XAxis dataKey="month" tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `₹${(v/100000).toFixed(1)}L`} />
+                      <Tooltip
+                        formatter={(v) => [`₹${(Number(v ?? 0)/1000).toFixed(0)}K`, '']}
+                        contentStyle={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12, boxShadow: 'var(--shadow-lg)', backdropFilter: 'blur(12px)' }}
+                      />
+                      <Area type="monotone" dataKey="collected" stroke="#6366f1" strokeWidth={2.5} fill="url(#collected)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </TiltCard>
+          ) : (
+            /* Teacher: Grade Distribution instead of Revenue */
+            <TiltCard>
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">Grade Distribution</span>
+                </div>
+                <div className="card-body">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <PieChart width={120} height={120}>
+                      <Pie data={gradeDistribution} cx={55} cy={55} innerRadius={36} outerRadius={54} dataKey="value" strokeWidth={0}>
+                        {gradeDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                    </PieChart>
+                    <div style={{ flex: 1 }}>
+                      {gradeDistribution.map(g => (
+                        <div key={g.name} className="flex items-center gap-2 mb-2">
+                          <div style={{ width: 10, height: 10, borderRadius: 3, background: g.color, flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', flex: 1 }}>Grade {g.name}</span>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{g.value}%</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </TiltCard>
+              </div>
+            </TiltCard>
+          )}
+        </div>
+      )}
 
-        {/* Upcoming Events */}
+      {/* ── Bottom Section ── */}
+      <div className={isStudent ? 'grid-2 mb-6' : 'grid-3 mb-6'}>
+        {/* Grade Distribution (Admin only — already shown above for teacher) */}
+        {isAdmin && (
+          <TiltCard>
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">Grade Distribution</span>
+                <Link href="/results" className="btn btn-ghost btn-sm" style={{ fontSize: '0.78rem' }}>
+                  View All <ChevronRight size={13} />
+                </Link>
+              </div>
+              <div className="card-body">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <PieChart width={120} height={120}>
+                    <Pie data={gradeDistribution} cx={55} cy={55} innerRadius={36} outerRadius={54} dataKey="value" strokeWidth={0}>
+                      {gradeDistribution.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                  </PieChart>
+                  <div style={{ flex: 1 }}>
+                    {gradeDistribution.map(g => (
+                      <div key={g.name} className="flex items-center gap-2 mb-2">
+                        <div style={{ width: 10, height: 10, borderRadius: 3, background: g.color, flexShrink: 0, boxShadow: `0 0 6px ${g.color}80` }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', flex: 1 }}>Grade {g.name}</span>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>{g.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TiltCard>
+        )}
+
+        {/* Upcoming Events — visible to everyone */}
         <TiltCard>
           <div className="card">
             <div className="card-header">
@@ -345,41 +566,36 @@ export default function DashboardPage() {
             </div>
           </div>
         </TiltCard>
-      </div>
 
-      {/* ── Recent Activity ── */}
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">Recent Activity</span>
-          <button className="btn btn-ghost btn-sm" style={{ fontSize: '0.78rem' }}>View All</button>
-        </div>
-        <div className="card-body" style={{ padding: '8px 20px' }}>
-          {recentActivity.map((item, i) => (
-            <div key={i} className="notification-item" style={{ transition: 'all 0.2s ease' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)'; (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(0)'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            >
-              <div className="notif-icon" style={{ background: item.bg, color: item.color, boxShadow: `0 4px 12px ${item.color}30` }}>
-                <item.icon size={16} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{item.text}</div>
-              </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 6 }}>{item.time}</span>
+        {/* Recent Activity — visible to everyone */}
+        <TiltCard>
+          <div className="card">
+            <div className="card-header">
+              <span className="card-title">Recent Activity</span>
             </div>
-          ))}
-        </div>
+            <div className="card-body" style={{ padding: '8px 20px' }}>
+              {recentActivity.map((item, i) => (
+                <div key={i} className="notification-item" style={{ transition: 'all 0.2s ease' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(4px)'; (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateX(0)'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <div className="notif-icon" style={{ background: item.bg, color: item.color, boxShadow: `0 4px 12px ${item.color}30` }}>
+                    <item.icon size={16} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{item.text}</div>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, background: 'var(--bg-subtle)', padding: '2px 8px', borderRadius: 6 }}>{item.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </TiltCard>
       </div>
 
       {/* ── Quick Actions ── */}
       <div className="flex gap-3 mt-5" style={{ flexWrap: 'wrap' }}>
-        {[
-          { label: 'Mark Attendance', icon: ClipboardCheck, href: '/attendance', color: '#10b981' },
-          { label: 'Add Student',     icon: GraduationCap,  href: '/students',   color: '#6366f1' },
-          { label: 'Generate Report', icon: BarChart3,       href: '/results',    color: '#8b5cf6' },
-          { label: 'Collect Fees',    icon: DollarSign,      href: '/finance',    color: '#f59e0b' },
-          { label: 'Send Notice',     icon: Bell,            href: '/communication', color: '#06b6d4' },
-        ].map((action) => (
+        {quickActions.map((action) => (
           <Link key={action.label} href={action.href} className="btn btn-secondary" style={{ gap: 8, transition: 'all 0.2s ease' }}
             onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(-2px)'; el.style.boxShadow = `0 8px 20px ${action.color}25`; el.style.borderColor = `${action.color}40`; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.transform = 'translateY(0)'; el.style.boxShadow = ''; el.style.borderColor = ''; }}

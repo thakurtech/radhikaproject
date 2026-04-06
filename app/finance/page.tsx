@@ -132,9 +132,11 @@ export default function FinancePage() {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm"><Download size={15} /> Export</button>
-          <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
-            <Plus size={15} /> Create Invoice
-          </button>
+          {(user?.role === 'school_admin' || user?.role === 'super_admin') && (
+            <button className="btn btn-primary btn-sm" onClick={() => setIsModalOpen(true)}>
+              <Plus size={15} /> Create Invoice
+            </button>
+          )}
         </div>
       </div>
 
