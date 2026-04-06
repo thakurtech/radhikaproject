@@ -16,6 +16,7 @@ export default function InstitutionsPlatformPage() {
 
   // Form State
   const [name, setName] = useState('');
+  const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [password, setPassword] = useState('');
   const [address, setAddress] = useState('');
@@ -52,13 +53,14 @@ export default function InstitutionsPlatformPage() {
       const res = await fetch('/api/institutions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, adminEmail, password, address })
+        body: JSON.stringify({ name, adminName, adminEmail, password, address })
       });
 
       if (res.ok) {
         alert('School and Admin Account created successfully!');
         setIsModalOpen(false);
         setName('');
+        setAdminName('');
         setAdminEmail('');
         setPassword('');
         setAddress('');
@@ -205,7 +207,20 @@ export default function InstitutionsPlatformPage() {
                     placeholder="e.g. Springfield High School"
                   />
                 </div>
-                
+
+                <div className="form-group">
+                  <label className="form-label">Admin Full Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    required
+                    placeholder="e.g. Dr. Priya Sharma"
+                  />
+                  <div className="form-hint">The name of the person managing this school on the platform.</div>
+                </div>
+
                 <div className="form-group">
                   <label className="form-label">School Admin Email</label>
                   <input

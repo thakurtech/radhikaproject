@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Settings, School, User, Bell, Shield, CreditCard,
-  Globe, Moon, Palette, Save, ChevronRight, Check
+  Globe, Moon, Palette, Save, ChevronRight, Check, LogOut
 } from 'lucide-react';
+import { useUser } from '../components/UserProvider';
+import { useRouter } from 'next/navigation';
 
 const TABS = [
-  { id: 'school', label: 'School Profile', icon: School },
   { id: 'account', label: 'Account', icon: User },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'security', label: 'Security', icon: Shield },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'appearance', label: 'Appearance', icon: Palette },
 ];
 
@@ -35,7 +35,9 @@ function Toggle({ on }: { on?: boolean }) {
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('school');
+  const { user, loading } = useUser();
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState('account');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
@@ -43,12 +45,26 @@ export default function SettingsPage() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/login');
+      router.refresh();
+    } catch (e) {
+      console.error('Logout failed:', e);
+    }
+  };
+
+  if (loading) {
+    return <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading settings...</div>;
+  }
+
   return (
     <>
       <div className="page-header">
         <div className="page-header-left">
           <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Manage your school profile, account, and system preferences</p>
+          <p className="page-subtitle">Manage your account and system preferences</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-primary" onClick={handleSave}>
@@ -71,46 +87,57 @@ export default function SettingsPage() {
                 <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.4 }} />
               </button>
             ))}
+            <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '8px 0' }} />
+            <button
+              className="nav-item"
+              onClick={handleLogout}
+              style={{ width: '100%', justifyContent: 'flex-start', border: 'none', background: 'transparent', color: 'var(--danger)' }}
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
           </div>
         </div>
 
         {/* Content */}
         <div>
-          {activeTab === 'school' && (
+          {activeTab === 'account' && (
             <div className="card card-body">
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 20, color: 'var(--text-primary)' }}>School Profile</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 20, color: 'var(--text-primary)' }}>Account Information</h3>
               <div style={{ display: 'flex', gap: 20, marginBottom: 24, alignItems: 'center' }}>
                 <div style={{
                   width: 80, height: 80, borderRadius: 'var(--radius-lg)',
                   background: 'linear-gradient(135deg, var(--primary), var(--accent-violet))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  fontSize: '1.5rem', fontWeight: 800, color: 'white'
                 }}>
-                  <School size={36} color="white" />
+                  {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || '??'}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Springfield High School</div>
-                  <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>Est. 1985 · CBSE Affiliated · School Code: SPR2024</div>
-                  <button className="btn btn-secondary btn-sm mt-2">Change Logo</button>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{user?.name || 'Unknown'}</div>
+                  <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                    {user?.email} · <span style={{ textTransform: 'capitalize' }}>{user?.role?.replace('_', ' ')}</span>
+                  </div>
                 </div>
               </div>
               <div className="grid-2" style={{ gap: 16 }}>
                 {[
-                  { label: 'School Name', value: 'Springfield High School', type: 'text' },
-                  { label: 'Principal Name', value: 'Dr. Priya Sharma', type: 'text' },
-                  { label: 'Email', value: 'admin@springfield.edu', type: 'email' },
-                  { label: 'Phone', value: '+91 11 2345 6789', type: 'tel' },
-                  { label: 'Board Affiliation', value: 'CBSE', type: 'text' },
-                  { label: 'School Code', value: 'SPR2024', type: 'text' },
+                  { label: 'Full Name', value: user?.name || '', type: 'text' },
+                  { label: 'Email', value: user?.email || '', type: 'email' },
+                  { label: 'Role', value: user?.role?.replace('_', ' ') || '', type: 'text', disabled: true },
+                  { label: 'School ID', value: user?.schoolId || 'Platform Admin', type: 'text', disabled: true },
                 ].map(field => (
                   <div key={field.label} className="form-group">
                     <label className="form-label">{field.label}</label>
-                    <input className="form-input" type={field.type} defaultValue={field.value} />
+                    <input
+                      className="form-input"
+                      type={field.type}
+                      defaultValue={field.value}
+                      disabled={field.disabled}
+                      style={field.disabled ? { opacity: 0.6 } : {}}
+                    />
                   </div>
                 ))}
-              </div>
-              <div className="form-group mt-3">
-                <label className="form-label">Address</label>
-                <textarea className="form-input" defaultValue="123 Education Lane, New Delhi, India — 110001" style={{ height: 'auto', padding: '12px 14px' }} rows={2} />
               </div>
             </div>
           )}
@@ -133,53 +160,6 @@ export default function SettingsPage() {
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.desc}</div>
                   </div>
                   <Toggle on={item.on} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          {activeTab === 'billing' && (
-            <div className="card card-body">
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 20 }}>Billing & Subscription</h3>
-              <div style={{
-                background: 'linear-gradient(135deg, var(--primary), var(--accent-violet))',
-                borderRadius: 'var(--radius-xl)',
-                padding: '24px',
-                marginBottom: 24,
-                color: 'white'
-              }}>
-                <div style={{ fontSize: '0.8rem', opacity: 0.8, marginBottom: 8 }}>Current Plan</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: 4 }}>Professional</div>
-                <div style={{ fontSize: '0.875rem', opacity: 0.8 }}>₹12,999/month · Up to 2,500 students · All AI features</div>
-                <div style={{ marginTop: 16, padding: '8px 16px', background: 'rgba(255,255,255,0.15)', borderRadius: 'var(--radius-sm)', display: 'inline-block', fontSize: '0.8rem' }}>
-                  ✓ Renews Jun 15, 2026
-                </div>
-              </div>
-              <div className="grid-3" style={{ gap: 12, marginBottom: 24 }}>
-                {[
-                  { label: 'Students Used', value: '2,847', max: '2,500', pct: 113 },
-                  { label: 'Storage Used', value: '142 GB', max: '500 GB', pct: 28 },
-                  { label: 'AI Queries', value: '48/day', max: '100/day', pct: 48 },
-                ].map(u => (
-                  <div key={u.label} style={{ background: 'var(--bg-subtle)', borderRadius: 10, padding: '14px' }}>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: 4, fontWeight: 600, textTransform: 'uppercase' }}>{u.label}</div>
-                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>{u.value} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.75rem' }}>/ {u.max}</span></div>
-                    <div className="progress-bar"><div className={`progress-fill ${u.pct > 100 ? 'danger' : 'primary'}`} style={{ width: `${Math.min(u.pct, 100)}%` }} /></div>
-                  </div>
-                ))}
-              </div>
-              {[
-                { date: 'Jan 15, 2026', desc: 'Professional Plan', amount: '₹12,999', status: 'Paid' },
-                { date: 'Dec 15, 2025', desc: 'Professional Plan', amount: '₹12,999', status: 'Paid' },
-                { date: 'Nov 15, 2025', desc: 'Professional Plan', amount: '₹12,999', status: 'Paid' },
-              ].map(inv => (
-                <div key={inv.date} className="flex items-center gap-4" style={{ padding: '12px 0', borderBottom: '1px solid var(--border-subtle)' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{inv.desc}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{inv.date}</div>
-                  </div>
-                  <span className="badge badge-success">{inv.status}</span>
-                  <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{inv.amount}</span>
                 </div>
               ))}
             </div>
@@ -220,14 +200,32 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {(activeTab === 'account' || activeTab === 'appearance') && (
-            <div className="card card-body" style={{ textAlign: 'center', padding: 60 }}>
-              <Settings size={48} style={{ margin: '0 auto 16px', color: 'var(--text-muted)', opacity: 0.4 }} />
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-                {activeTab === 'account' ? 'Account Settings' : 'Appearance Settings'}
+          {activeTab === 'appearance' && (
+            <div className="card card-body">
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 20 }}>Appearance Settings</h3>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: 20 }}>
+                Customize how EduVerse looks on your device.
               </div>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                This section is being configured. More options coming soon.
+              <div className="flex items-center justify-between" style={{ padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Dark Mode</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Use dark theme across the application</div>
+                </div>
+                <Toggle on={true} />
+              </div>
+              <div className="flex items-center justify-between" style={{ padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Compact Mode</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Reduce spacing for more content on screen</div>
+                </div>
+                <Toggle on={false} />
+              </div>
+              <div className="flex items-center justify-between" style={{ padding: '14px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Animations</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Enable smooth transitions and hover effects</div>
+                </div>
+                <Toggle on={true} />
               </div>
             </div>
           )}

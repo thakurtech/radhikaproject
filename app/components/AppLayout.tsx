@@ -319,9 +319,38 @@ function AIChatWidget() {
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { theme, toggle } = useTheme();
+  const { user, loading } = useUser();
   
   if (pathname === '/' || pathname === '/login' || pathname === '/signup') {
     return <>{children}</>;
+  }
+
+  // Show a branded loading screen while checking authentication
+  if (loading) {
+    return (
+      <div style={{
+        height: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg-base)', gap: 16
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 12,
+          background: 'linear-gradient(135deg, var(--primary), var(--accent-violet))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          animation: 'fab-pulse 1.5s ease infinite'
+        }}>
+          <School size={24} color="white" />
+        </div>
+        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+          Loading EduVerse...
+        </div>
+      </div>
+    );
+  }
+
+  // If not loading and no user, the UserProvider will redirect to /login
+  if (!user) {
+    return null;
   }
 
   return (

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const { name, adminEmail, password, address } = await req.json();
+    const { name, adminName, adminEmail, password, address } = await req.json();
 
     if (!name || !adminEmail || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     // 2. Hash password & create the School Admin User
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({
-      name: `${name} Admin`,
+      name: adminName || `${name} Admin`,
       email: adminEmail,
       passwordHash,
       role: 'school_admin',

@@ -12,36 +12,19 @@ let idCounter = 10;
 const INITIAL_MESSAGES = [
   {
     id: 1, role: 'bot',
-    text: "👋 Hello! I'm **EduAI**, your intelligent school assistant powered by advanced AI.\n\nI can help you with:\n• **Student analytics** — attendance, grades, performance\n• **Fee management** — pending fees, payment status\n• **Academic planning** — timetables, exam schedules\n• **Reports** — generate any school report instantly\n• **Insights** — AI-powered predictions and recommendations\n\nWhat would you like to know today?",
+    text: "👋 Hello! I'm **EduAI**, your intelligent school assistant connected to your live database.\n\nI can help you with:\n• **Student analytics** — attendance, grades, performance\n• **Fee management** — pending fees, payment status\n• **Staff info** — teacher and faculty data\n• **Attendance** — today's roll call status\n\nWhat would you like to know today?",
     time: '10:00 AM'
   }
 ];
 
 const QUICK_PROMPTS = [
-  { icon: ClipboardCheck, text: "Who has attendance below 75%?", color: 'var(--accent-emerald)' },
-  { icon: GraduationCap, text: "Show top 5 performing students", color: 'var(--primary)' },
-  { icon: DollarSign, text: "List overdue fee payments", color: 'var(--accent-amber)' },
-  { icon: BarChart3, text: "Generate monthly performance report", color: 'var(--accent-violet)' },
-  { icon: MessageSquare, text: "Draft parent notification about exams", color: 'var(--accent-cyan)' },
-  { icon: BookOpen, text: "Show today's timetable summary", color: 'var(--accent-rose)' },
+  { icon: ClipboardCheck, text: "How is today's attendance?", color: 'var(--accent-emerald)' },
+  { icon: GraduationCap, text: "How many students do we have?", color: 'var(--primary)' },
+  { icon: DollarSign, text: "Show fee collection status", color: 'var(--accent-amber)' },
+  { icon: BarChart3, text: "How many teachers do we have?", color: 'var(--accent-violet)' },
+  { icon: MessageSquare, text: "Hello!", color: 'var(--accent-cyan)' },
+  { icon: BookOpen, text: "What's the revenue status?", color: 'var(--accent-rose)' },
 ];
-
-const AI_RESPONSES: Record<string, string> = {
-  attendance: "📊 **Students with attendance below 75%:**\n\n1. **Rohit Kumar** (Grade 9-A) — 65% attendance, 12 absences\n2. **Priya Patel** (Grade 9-B) — 62% attendance, 14 absences\n3. **Deepak Verma** (Grade 8-A) — 68% attendance, 10 absences\n\n⚠️ All three are at risk of failing this semester due to low attendance.\n\n**Recommended Action:** Send automated parent alerts and schedule counselling sessions.\n\nShall I draft the parent notification messages?",
-  top: "🏆 **Top 5 Performing Students (Current Semester):**\n\n| Rank | Student | Class | Score | Trend |\n|------|---------|-------|-------|-------|\n| 1 | Aayush Sharma | Grade 10-A | 92.4% | ↑ +2.1% |\n| 2 | Anjali Menon | Grade 8-B | 91.6% | ↑ +1.8% |\n| 3 | Kavya Reddy | Grade 12-B | 90.8% | ↑ +0.9% |\n| 4 | Simran Kaur | Grade 11-B | 88.4% | → same |\n| 5 | Aryan Singh | Grade 11-A | 87.2% | ↓ -0.5% |\n\n💡 **AI Insight:** Aayush Sharma shows fastest improvement. Consider nominating for district excellence award.",
-  fee: "💰 **Overdue Fee Payments:**\n\n1. **Priya Patel** (Grade 9-B)\n   - Amount: ₹38,000\n   - Due since: Dec 15, 2025 (21 days overdue)\n   - Parent Contact: +91 43210 98765\n\n2. **Vikram Nair** (Grade 12-A)\n   - Amount: ₹52,000\n   - Due since: Jan 15, 2026\n   - Parent Contact: +91 32109 87654\n\n**Total Overdue: ₹90,000**\n\nShall I send automated reminders to these parents via SMS and email?",
-  report: "📈 **Monthly Performance Report — March 2026**\n\n**School Overview:**\n- Total Students: 2,847\n- Average Attendance: 84.6% ↓ from 87.2%\n- Average Score: 82.3% ↑ from 80.1%\n- Fee Collection Rate: 91.1%\n\n**Academic Highlights:**\n- Best improvement: English (+8.2%)\n- Most consistent: Math (82.1%)\n- Needs attention: Grade 9 (attendance issues)\n\n**Report generated and ready for download.** Would you like me to email it to the principal?",
-  default: "I understand your query! Let me analyze the school data...\n\nBased on current records, I found relevant information.\n\n**Key Insights:**\n• Current semester shows 4.2% overall improvement in academic performance\n• 89% of students are on track with curriculum requirements\n• 3 classes need immediate teacher attention (Grade 9-A, 9-B, 8-A)\n\nWould you like me to dive deeper into any specific aspect? I can generate detailed reports, send notifications, or provide recommendations.",
-};
-
-function getResponse(input: string): string {
-  const lower = input.toLowerCase();
-  if (lower.includes('attendance') || lower.includes('absent')) return AI_RESPONSES.attendance;
-  if (lower.includes('top') || lower.includes('perform') || lower.includes('best')) return AI_RESPONSES.top;
-  if (lower.includes('fee') || lower.includes('overdue') || lower.includes('payment')) return AI_RESPONSES.fee;
-  if (lower.includes('report') || lower.includes('generate') || lower.includes('monthly')) return AI_RESPONSES.report;
-  return AI_RESPONSES.default;
-}
 
 function formatText(text: string) {
   return text
@@ -55,9 +38,6 @@ function formatText(text: string) {
       }
       if (line.match(/^\d\./)) {
         return <div key={i} style={{ paddingLeft: 12, marginBottom: 6 }}>{line.replace(/\*\*(.*?)\*\*/g, '$1')}</div>;
-      }
-      if (line.startsWith('| ')) {
-        return null; // skip table lines for simplicity
       }
       const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       return <div key={i} style={{ marginBottom: line ? 4 : 8 }} dangerouslySetInnerHTML={{ __html: formatted || '&nbsp;' }} />;
@@ -74,7 +54,7 @@ export default function AIAssistantPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const sendMessage = (text?: string) => {
+  const sendMessage = async (text?: string) => {
     const msgText = text || input;
     if (!msgText.trim() || loading) return;
 
@@ -83,16 +63,34 @@ export default function AIAssistantPage() {
     setInput('');
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msgText })
+      });
+
+      const data = await res.json();
+      const reply = data.reply || 'Sorry, I could not process that request.';
+
       const botMsg = {
         id: ++idCounter,
         role: 'bot' as const,
-        text: getResponse(msgText),
+        text: reply,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, botMsg]);
+    } catch (error) {
+      const errorMsg = {
+        id: ++idCounter,
+        role: 'bot' as const,
+        text: '⚠️ Something went wrong. Please check your connection and try again.',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
       setLoading(false);
-    }, 1200);
+    }
   };
 
   return (
@@ -100,13 +98,12 @@ export default function AIAssistantPage() {
       <div className="page-header">
         <div className="page-header-left">
           <h1 className="page-title">EduAI Assistant</h1>
-          <p className="page-subtitle">Ask anything about your school — powered by advanced AI</p>
+          <p className="page-subtitle">Ask anything about your school — powered by live database queries</p>
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm" onClick={() => setMessages(INITIAL_MESSAGES)}>
             <RefreshCw size={14} /> New Chat
           </button>
-          <button className="btn btn-primary btn-sm"><Download size={14} /> Export Chat</button>
         </div>
       </div>
 
@@ -126,7 +123,7 @@ export default function AIAssistantPage() {
               <div style={{ color: 'white', fontWeight: 700, fontSize: '0.95rem' }}>EduAI Assistant</div>
               <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#86efac', animation: 'blink 1.5s ease infinite' }} />
-                AI-powered · School context active
+                Connected to live database
               </div>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -187,7 +184,6 @@ export default function AIAssistantPage() {
           {/* Input */}
           <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-subtle)', flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-              <button className="btn btn-ghost btn-icon"><Paperclip size={18} color="var(--text-muted)" /></button>
               <div style={{ flex: 1 }}>
                 <input
                   className="form-input"
@@ -199,7 +195,6 @@ export default function AIAssistantPage() {
                   disabled={loading}
                 />
               </div>
-              <button className="btn btn-ghost btn-icon"><Mic size={18} color="var(--text-muted)" /></button>
               <button
                 className="btn btn-primary btn-icon" style={{ width: 44, height: 44, borderRadius: '50%', flexShrink: 0 }}
                 onClick={() => sendMessage()} disabled={loading}
@@ -208,7 +203,7 @@ export default function AIAssistantPage() {
               </button>
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
-              EduAI has access to all school data · Responses are AI-generated summaries
+              EduAI queries your live school database · Responses are real-time
             </div>
           </div>
         </div>
@@ -236,10 +231,10 @@ export default function AIAssistantPage() {
             <div className="card-header"><span className="card-title">AI Capabilities</span></div>
             <div className="card-body" style={{ padding: '12px 16px' }}>
               {[
-                { label: 'Real-time Analytics', desc: 'Live data queries' },
-                { label: 'Report Generation', desc: 'PDF & Excel export' },
-                { label: 'Predictive Alerts', desc: 'Early warning system' },
-                { label: 'Multi-language', desc: 'Hindi, English + more' },
+                { label: 'Live Database Queries', desc: 'Real-time data from MongoDB' },
+                { label: 'Student Analytics', desc: 'Enrollment & performance' },
+                { label: 'Financial Insights', desc: 'Fee collection & revenue' },
+                { label: 'Attendance Tracking', desc: 'Today\'s roll call status' },
               ].map(cap => (
                 <div key={cap.label} className="flex items-center gap-3" style={{ marginBottom: 12 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--primary-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -251,17 +246,6 @@ export default function AIAssistantPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {/* Usage */}
-          <div className="card">
-            <div className="card-header"><span className="card-title">Usage Today</span></div>
-            <div className="card-body">
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>48</div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 12 }}>queries processed</div>
-              <div className="progress-bar mb-2"><div className="progress-fill primary" style={{ width: '48%' }} /></div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>48 / 100 daily limit</div>
             </div>
           </div>
         </div>

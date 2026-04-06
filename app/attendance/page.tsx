@@ -50,7 +50,7 @@ export default function AttendancePage() {
       const res = await fetch('/api/students');
       if (res.ok) {
         const data = await res.json();
-        const stds = data.students || [];
+        const stds = Array.isArray(data) ? data : (data.students || []);
         setStudents(stds);
 
         // Fetch today's attendance logs

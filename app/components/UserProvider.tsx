@@ -23,6 +23,8 @@ const UserContext = createContext<UserContextType>({
   refetchUser: async () => {},
 });
 
+const PUBLIC_ROUTES = ['/', '/login', '/signup'];
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,13 +54,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Only fetch session if missing and we are not on a public explicit route
-    if (!user && pathname !== '/' && pathname !== '/signup') {
-      fetchUser();
-    } else {
+    const isPublic = PUBLIC_ROUTES.includes(pathname);
+
+    if (isPublic) {
+      // Don't fetch session on public pages — just clear loading
       setLoading(false);
+      return;
     }
+
+    // On protected routes, always check auth
+    fetchUser();
   }, [pathname]);
+
+  // Redirect to login if user is null on protected routes (after loading completes)
+  useEffect(() => {
+    if (loading) return;
+    const isPublic = PUBLIC_ROUTES.includes(pathname);
+    if (!isPublic && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, pathname, router]);
 
   return (
     <UserContext.Provider value={{ user, loading, refetchUser: fetchUser }}>

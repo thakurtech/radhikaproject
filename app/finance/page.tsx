@@ -81,7 +81,7 @@ export default function FinancePage() {
       const res = await fetch('/api/students');
       if (res.ok) {
          const data = await res.json();
-         setStudents(data.students || []);
+         setStudents(Array.isArray(data) ? data : (data.students || []));
       }
     } catch (e) {}
   };
