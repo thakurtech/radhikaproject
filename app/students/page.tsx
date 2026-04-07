@@ -10,6 +10,8 @@ import { useUser } from '../components/UserProvider';
 export default function StudentsPage() {
   const { user } = useUser();
   const isAdmin = user?.role === 'school_admin' || user?.role === 'super_admin';
+  const isTeacher = user?.role === 'teacher';
+  
   const [students, setStudents] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,8 @@ export default function StudentsPage() {
     email: '',
     enrollmentNumber: '',
     courseId: '',
-    currentYear: 1
+    currentYear: 1,
+    password: ''
   });
 
   const fetchData = async () => {
@@ -43,9 +46,37 @@ export default function StudentsPage() {
       const stuData = await stuRes.json();
       const curData = await curRes.json();
       setStudents(Array.isArray(stuData) ? stuData : []);
-      setCourses(Array.isArray(curData) ? curData : []);
-      if (Array.isArray(curData) && curData.length > 0) {
-        setFormData(prev => ({ ...prev, courseId: curData[0]._id }));
+      let finalCourses = Array.isArray(curData) ? curData : [];
+      
+      // If teacher, fetch their profile to filter courses
+      if (user?.role === 'teacher') {
+        try {
+          const tRes = await fetch('/api/teachers');
+          const tData = await tRes.json();
+          if (tData.teachers) {
+            const me = tData.teachers.find((t: any) => t.userId === user.id);
+            if (me) {
+              const tDept = me.department.toLowerCase();
+              finalCourses = finalCourses.filter((c: any) => {
+                const cName = c.name.toLowerCase();
+                return cName.includes(tDept) || 
+                       tDept.includes(cName) || 
+                       (tDept.includes('computer') && cName.includes('cs')) ||
+                       (tDept.includes('computer') && cName.includes('bca')) ||
+                       (tDept.includes('mechanical') && cName.includes('me')) ||
+                       (tDept.includes('business') && cName.includes('bba')) ||
+                       (tDept.includes('management') && cName.includes('mba'));
+              });
+            }
+          }
+        } catch (e) {
+          console.error('Failed to fetch teacher profile for filtering:', e);
+        }
+      }
+
+      setCourses(finalCourses);
+      if (finalCourses.length > 0) {
+        setFormData(prev => ({ ...prev, courseId: finalCourses[0]._id }));
       }
     } catch (err) {
       console.error(err);
@@ -86,7 +117,7 @@ export default function StudentsPage() {
 
   const openAddModal = () => {
     setEditingId(null);
-    setFormData({ firstName: '', lastName: '', email: '', enrollmentNumber: '', courseId: courses[0]?._id || '', currentYear: 1 });
+    setFormData({ firstName: '', lastName: '', email: '', enrollmentNumber: '', courseId: courses[0]?._id || '', currentYear: 1, password: '' });
     setShowAddModal(true);
   };
 
@@ -98,7 +129,8 @@ export default function StudentsPage() {
       email: student.email || '',
       enrollmentNumber: student.enrollmentNumber,
       courseId: student.courseId?._id || '',
-      currentYear: student.currentYear
+      currentYear: student.currentYear,
+      password: '' // Password hidden on edit
     });
     setShowAddModal(true);
   };
@@ -149,9 +181,9 @@ export default function StudentsPage() {
         </div>
         <div className="page-header-actions">
           <button className="btn btn-secondary btn-sm"><Download size={15} /> Export</button>
-          {isAdmin && (
-            <button className="btn btn-primary btn-sm" onClick={openAddModal}>
-              <Plus size={15} /> Add Student
+          {(isAdmin || isTeacher) && (
+            <button className="btn btn-primary" onClick={openAddModal}>
+              <Plus size={16} /> Add New Student
             </button>
           )}
         </div>
@@ -237,11 +269,15 @@ export default function StudentsPage() {
                       <td>
                         <div className="flex items-center gap-1">
                           <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setViewStudent(student)}><Eye size={14} /></button>
-                          {isAdmin && (
-                            <>
-                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => openEditModal(student)}><Edit2 size={14} /></button>
-                              <button className="btn btn-ghost btn-icon btn-sm" onClick={() => handleDelete(student._id)}><Trash2 size={14} color="#ef4444" /></button>
-                            </>
+                          {(isAdmin || isTeacher) && (
+                            <div className="flex gap-2">
+                              <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditModal(student)}>
+                                <Edit2 size={13} /> Edit
+                              </button>
+                              <button className="btn btn-secondary btn-icon btn-sm" onClick={() => handleDelete(student._id)}>
+                                <Trash2 size={13} color="#ef4444" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -280,9 +316,17 @@ export default function StudentsPage() {
                 </div>
              </div>
 
-             <div className="form-group" style={{ marginBottom: 16 }}>
-                <label className="form-label">Student Email (for Login)</label>
-                <input className="form-input" type="email" required value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} />
+             <div className="grid-2" style={{ gap: 16, marginBottom: 16 }}>
+                <div className="form-group">
+                  <label className="form-label">Student Email (for Login)</label>
+                  <input className="form-input" type="email" required value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} />
+                </div>
+                {!editingId && (
+                <div className="form-group">
+                  <label className="form-label">Temporary Password</label>
+                  <input className="form-input" type="password" required value={formData.password} onChange={e=>setFormData({...formData, password: e.target.value})} />
+                </div>
+                )}
              </div>
 
              <div className="form-group" style={{ marginBottom: 16 }}>

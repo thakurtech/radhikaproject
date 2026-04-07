@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 import connectDB from '@/lib/db';
-import { Student, User } from '@/lib/models';
+import { Student, User, Teacher, Course } from '@/lib/models';
 import bcrypt from 'bcryptjs';
 
 export async function GET(req: NextRequest) {
@@ -32,24 +32,51 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const payload = await verifyAuth(token);
-    if (payload.role !== 'school_admin') {
-      return NextResponse.json({ error: 'Forbidden. Only Admins can add students.' }, { status: 403 });
+    if (!['school_admin', 'super_admin', 'teacher'].includes(payload.role)) {
+      return NextResponse.json({ error: 'Forbidden. Only Admins and Teachers can add students.' }, { status: 403 });
     }
 
-    const { firstName, lastName, enrollmentNumber, courseId, currentYear, email } = await req.json();
+    const { firstName, lastName, enrollmentNumber, courseId, currentYear, email, password } = await req.json();
 
-    if (!firstName || !lastName || !enrollmentNumber || !courseId || !email) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!firstName || !lastName || !enrollmentNumber || !courseId || !email || !password) {
+      return NextResponse.json({ error: 'Missing required fields including password' }, { status: 400 });
     }
 
     await connectDB();
 
-    // 1. Create a User login credentials for the student
-    const defaultPassword = await bcrypt.hash('Student@123', 10);
+    if (payload.role === 'teacher') {
+      const teacherProfile = await Teacher.findOne({ userId: payload.userId }).lean();
+      if (!teacherProfile) return NextResponse.json({ error: 'Teacher profile not found' }, { status: 400 });
+      
+      const course = await Course.findById(courseId).lean();
+      if (!course) return NextResponse.json({ error: 'Course not found' }, { status: 400 });
+      
+      const cName = course.name.toLowerCase();
+      const tDept = teacherProfile.department.toLowerCase();
+      
+      // Simple mapping verification for standard courses like B.Tech CS <-> Computer Science, BBA <-> Business
+      const isValid = 
+        cName.includes(tDept) || 
+        tDept.includes(cName) || 
+        (tDept.includes('computer') && cName.includes('cs')) ||
+        (tDept.includes('computer') && cName.includes('bca')) ||
+        (tDept.includes('mechanical') && cName.includes('me')) ||
+        (tDept.includes('business') && cName.includes('bba')) ||
+        (tDept.includes('management') && cName.includes('mba'));
+        
+      if (!isValid) {
+         return NextResponse.json({ error: 'Forbidden. You can only add students to your department.' }, { status: 403 });
+      }
+    }
+
+    // Optional: If teacher, could verify course relation here, but we rely on UI restriction.
+
+    // 1. Create a User login credentials for the student using provided password
+    const studentPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       name: `${firstName} ${lastName}`,
       email: email,
-      passwordHash: defaultPassword,
+      passwordHash: studentPassword,
       role: 'student',
       schoolId: payload.schoolId
     });
