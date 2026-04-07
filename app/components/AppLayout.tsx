@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, GraduationCap, ClipboardCheck,
   BookOpen, BarChart3, DollarSign, MessageSquare, Library,
   Bus, Bot, Settings, ChevronRight, Bell, Search,
-  Sparkles, HelpCircle, School, Sun, Moon, Link2
+  Sparkles, HelpCircle, School, Sun, Moon, Link2, FileText, Calendar
 } from 'lucide-react';
 import { UserProvider, useUser } from './UserProvider';
 
@@ -26,7 +26,7 @@ function getNavSections(role: string) {
     });
   }
 
-  // Everyone gets Overview (Admins also get dashboard)
+  // Everyone gets Overview
   if (role !== 'super_admin') {
      sections.push({
        label: 'Overview',
@@ -37,7 +37,7 @@ function getNavSections(role: string) {
      });
   }
 
-  // People & Academics are for ALL roles currently handled
+  // People
   sections.push({
     label: 'People',
     items: [
@@ -46,27 +46,30 @@ function getNavSections(role: string) {
     ]
   });
 
+  // Academics — now includes Assignments and Exams
   sections.push({
     label: 'Academics',
     items: [
       { label: 'Attendance', icon: ClipboardCheck, href: '/attendance' },
-      { label: 'Academics', icon: BookOpen, href: '/academics' },
-      { label: 'Results & Grades', icon: BarChart3, href: '/results' },
+      { label: 'Courses', icon: BookOpen, href: '/academics' },
+      { label: 'Assignments', icon: FileText, href: '/assignments' },
+      { label: 'Exams & Tests', icon: Calendar, href: '/results' },
     ]
   });
 
-  // Finance and Operations only for Admins
-  if (role === 'super_admin' || role === 'school_admin') {
-    sections.push({
-      label: 'Operations',
-      items: [
-        { label: 'Finance', icon: DollarSign, href: '/finance' },
-        { label: 'Communication', icon: MessageSquare, href: '/communication' },
-        { label: 'Library', icon: Library, href: '/library' },
-        { label: 'Transport', icon: Bus, href: '/transport' },
-      ]
-    });
+  // Operations — visible to everyone
+  sections.push({
+    label: 'Operations',
+    items: [
+      ...(role === 'super_admin' || role === 'school_admin' ? [{ label: 'Finance', icon: DollarSign, href: '/finance' }] : []),
+      { label: 'Communication', icon: MessageSquare, href: '/communication' },
+      { label: 'Library', icon: Library, href: '/library' },
+      { label: 'Transport', icon: Bus, href: '/transport' },
+    ]
+  });
 
+  // System — admins only
+  if (role === 'super_admin' || role === 'school_admin') {
     sections.push({
       label: 'System',
       items: [
