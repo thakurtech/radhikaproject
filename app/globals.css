@@ -1,16 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
 /* ============================================================
-   EDUVERSE 3D DESIGN SYSTEM — Ultra-Modern Glassmorphism
+   EDUVERSE 3D DESIGN SYSTEM — Ultra-Modern Glassmorphism V2
 ============================================================ */
 
 :root {
-  /* Brand */
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --primary-glow: rgba(99, 102, 241, 0.20);
-  --primary-subtle: rgba(99, 102, 241, 0.10);
+  /* Brand - Deepened for hyper-modern feel */
+  --primary: #4f46e5;
+  --primary-light: #6366f1;
+  --primary-dark: #3730a3;
+  --primary-glow: rgba(79, 70, 229, 0.25);
+  --primary-subtle: rgba(79, 70, 229, 0.10);
 
   /* Accents */
   --accent-violet: #8b5cf6;
@@ -22,25 +22,25 @@
   --accent-pink: #ec4899;
 
   /* Backgrounds */
-  --bg-base: #f0f2ff;
-  --bg-elevated: rgba(255, 255, 255, 0.80);
-  --bg-overlay: rgba(255, 255, 255, 0.70);
-  --bg-subtle: rgba(241, 243, 255, 0.80);
-  --bg-sidebar: rgba(255, 255, 255, 0.75);
-  --bg-glass: rgba(255, 255, 255, 0.60);
-  --bg-glass-dark: rgba(255, 255, 255, 0.08);
+  --bg-base: #f8fafc;
+  --bg-elevated: rgba(255, 255, 255, 0.70);
+  --bg-overlay: rgba(255, 255, 255, 0.65);
+  --bg-subtle: rgba(248, 250, 252, 0.70);
+  --bg-sidebar: rgba(255, 255, 255, 0.65);
+  --bg-glass: rgba(255, 255, 255, 0.50);
+  --bg-glass-dark: rgba(255, 255, 255, 0.05);
 
-  /* Glassmorphism */
-  --glass-blur: blur(24px) saturate(180%);
-  --glass-blur-heavy: blur(40px) saturate(200%);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --glass-border-inner: rgba(255, 255, 255, 0.90);
+  /* Glassmorphism Vision OS */
+  --glass-blur: blur(40px) saturate(220%);
+  --glass-blur-heavy: blur(60px) saturate(250%);
+  --glass-border: rgba(255, 255, 255, 0.40);
+  --glass-border-inner: rgba(255, 255, 255, 0.80);
 
   /* Borders */
-  --border: rgba(99, 102, 241, 0.12);
-  --border-subtle: rgba(99, 102, 241, 0.06);
-  --border-strong: rgba(99, 102, 241, 0.25);
-  --border-glow: rgba(99, 102, 241, 0.5);
+  --border: rgba(79, 70, 229, 0.10);
+  --border-subtle: rgba(79, 70, 229, 0.05);
+  --border-strong: rgba(79, 70, 229, 0.20);
+  --border-glow: rgba(79, 70, 229, 0.5);
 
   /* Text */
   --text-primary: #0f172a;
@@ -105,37 +105,37 @@
 }
 
 /* ============================================================
-   DARK MODE — [data-theme="dark"] on <html>
+   DARK MODE — OLED Deep Black Aesthetics
 ============================================================ */
 [data-theme="dark"] {
-  --bg-base: #060812;
-  --bg-elevated: rgba(15, 17, 32, 0.90);
-  --bg-overlay: rgba(12, 14, 24, 0.85);
-  --bg-subtle: rgba(20, 22, 42, 0.80);
-  --bg-sidebar: rgba(8, 10, 20, 0.88);
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --bg-glass-dark: rgba(255, 255, 255, 0.06);
+  --bg-base: #020617; /* Slate 950 - OLED Black */
+  --bg-elevated: rgba(15, 23, 42, 0.65);
+  --bg-overlay: rgba(15, 23, 42, 0.75);
+  --bg-subtle: rgba(15, 23, 42, 0.50);
+  --bg-sidebar: rgba(15, 23, 42, 0.60);
+  --bg-glass: rgba(255, 255, 255, 0.02);
+  --bg-glass-dark: rgba(255, 255, 255, 0.04);
 
-  --glass-border: rgba(255, 255, 255, 0.10);
-  --glass-border-inner: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-inner: rgba(255, 255, 255, 0.12);
 
-  --border: rgba(99, 102, 241, 0.18);
-  --border-subtle: rgba(99, 102, 241, 0.08);
-  --border-strong: rgba(99, 102, 241, 0.35);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.20);
 
-  --text-primary: #f0f2ff;
-  --text-secondary: #94a3b8;
-  --text-muted: #475569;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
 
-  --shadow-sm: 0 2px 12px rgba(0,0,0,0.4), 0 0 1px rgba(99,102,241,0.2);
-  --shadow-md: 0 8px 24px rgba(0,0,0,0.5), 0 0 1px rgba(99,102,241,0.2);
-  --shadow-lg: 0 16px 48px rgba(0,0,0,0.6), 0 0 2px rgba(99,102,241,0.3);
-  --shadow-card-3d: 0 20px 60px rgba(0,0,0,0.5), 0 8px 20px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.08);
+  --shadow-sm: 0 4px 16px rgba(0,0,0,0.6), 0 0 1px rgba(255,255,255,0.1);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.8), 0 0 1px rgba(255,255,255,0.15);
+  --shadow-lg: 0 16px 64px rgba(0,0,0,0.9), 0 0 2px rgba(255,255,255,0.2);
+  --shadow-card-3d: 0 24px 80px rgba(0,0,0,0.8), 0 12px 32px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05);
 
-  --orb-1: rgba(99, 102, 241, 0.25);
-  --orb-2: rgba(139, 92, 246, 0.20);
-  --orb-3: rgba(6, 182, 212, 0.15);
-  --orb-4: rgba(236, 72, 153, 0.12);
+  --orb-1: rgba(99, 102, 241, 0.35); /* Amplified neon to bleed through black */
+  --orb-2: rgba(139, 92, 246, 0.30);
+  --orb-3: rgba(6, 182, 212, 0.25);
+  --orb-4: rgba(236, 72, 153, 0.25);
 }
 
 /* Merged reset + smooth theme transition */
@@ -164,11 +164,12 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-base);
   color: var(--text-primary);
   line-height: 1.5;
   min-height: 100vh;
+  letter-spacing: 0.01em; /* Tighter letter spacing for Outfit */
 }
 
 a {
