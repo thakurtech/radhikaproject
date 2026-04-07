@@ -128,11 +128,13 @@ const VEHICLES_DATA = [
 
 // ══════════════════════════════════════════════════════════════════════════════
 
-export async function POST(req: NextRequest) {
+export const maxDuration = 60; // Allow up to 60 seconds for seeding
+
+export async function GET(req: NextRequest) {
   try {
-    const { secret } = await req.json();
-    if (secret !== SEED_SECRET) {
-      return NextResponse.json({ error: 'Invalid seed secret' }, { status: 403 });
+    const key = req.nextUrl.searchParams.get('key');
+    if (key !== 'eduverse2026') {
+      return NextResponse.json({ error: 'Invalid key. Use ?key=eduverse2026' }, { status: 403 });
     }
 
     await connectDB();
@@ -259,13 +261,14 @@ export async function POST(req: NextRequest) {
     console.log('Creating attendance records...');
     const csTeacher = teacherUsers[0]; // Rajesh Sharma
     const today = new Date();
+    const attendanceBatch: any[] = [];
     for (let d = 1; d <= 5; d++) {
       const date = new Date(today);
       date.setDate(today.getDate() - d);
       const dateStr = date.toISOString().split('T')[0];
       for (const student of studentDocs) {
         const statuses: ('present' | 'absent' | 'late')[] = ['present', 'present', 'present', 'present', 'absent', 'late'];
-        await Attendance.create({
+        attendanceBatch.push({
           schoolId: school._id, studentId: student._id,
           date: dateStr,
           status: statuses[Math.floor(Math.random() * statuses.length)],
@@ -273,6 +276,7 @@ export async function POST(req: NextRequest) {
         });
       }
     }
+    await Attendance.insertMany(attendanceBatch);
 
     // ── 10. Create Assignments ──
     console.log('Creating assignments...');
