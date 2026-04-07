@@ -162,11 +162,12 @@ export default function LoginPage() {
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border)'
           }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Sunderdeep Demo Accounts</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Demo Accounts — Password: Edu@2026</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-              Admin: <b>admin@sunderdeep.edu</b> / Admin@123<br />
-              Teacher: <b>rahul.sharma@sunderdeep.edu</b> / Teacher@123<br />
-              Student: <b>arjun.btech@sunderdeep.edu</b> / Student@123
+              Admin: <b>admin@sunderdeep.edu</b><br />
+              Teacher: <b>rajesh.sharma@sunderdeep.edu</b><br />
+              Student: <b>sumit.thakur@sunderdeep-btech-cs.edu</b><br />
+              Student: <b>radhika.sharma@sunderdeep-bca.edu</b>
             </div>
           </div>
         </form>
